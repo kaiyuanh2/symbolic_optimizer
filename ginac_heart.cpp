@@ -129,7 +129,7 @@ int main() {
         // Start timing for linearization
         auto start_linearize = high_resolution_clock::now();
         // Expand the result
-        ex linearized_result = preds_diff.expand();
+        ex linearized_result = preds_diff.expand().normal();
         // End timing for linearization
         auto end_linearize = high_resolution_clock::now();
         auto duration_linearize = duration_cast<milliseconds>(end_linearize - start_linearize);

@@ -1,0 +1,46 @@
+# Python dependencies
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# C++ build artifacts
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.a
+*.lib
+*.dSYM/
+*.pdb
+*.idb
+*.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Jupyter Notebook metadata
+*.ipynb-meta

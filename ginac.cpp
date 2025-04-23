@@ -54,6 +54,52 @@ matrix load_matrix_from_csv(const string& filename) {
     return result;
 }
 
+int count_nodes(const GiNaC::ex& expr) {
+    // Count this node
+    int count = 1;
+    
+    // Add count of all child nodes
+    for (size_t i = 0; i < expr.nops(); ++i) {
+        count += count_nodes(expr.op(i));
+    }
+    
+    return count;
+}
+
+int get_depth(const GiNaC::ex& expr) {
+    if (expr.nops() == 0)
+        return 0;
+    
+    int max_depth = 0;
+    for (size_t i = 0; i < expr.nops(); ++i) {
+        int child_depth = get_depth(expr.op(i));
+        if (child_depth > max_depth)
+            max_depth = child_depth;
+    }
+    
+    return max_depth + 1;
+}
+
+void memory_footprint(const ex& expr, set<void*>& visited, size_t& size) {
+    // Get pointer to actual object
+    const void* ptr = &expr;
+    
+    // If we've seen this pointer before, don't count it again
+    if (visited.find((void*)ptr) != visited.end())
+        return;
+    
+    // Mark as visited
+    visited.insert((void*)ptr);
+    
+    // Add approximate size for this node (very rough estimate)
+    size += sizeof(ex) + 16;  // Base size plus some overhead
+    
+    // Recurse to children
+    for (size_t i = 0; i < expr.nops(); ++i) {
+        memory_footprint(expr.op(i), visited, size);
+    }
+}
+
 int main() {
     // Open a file for the output
     ofstream outfile("ginac_output.txt");
@@ -113,6 +159,7 @@ int main() {
         for (int i = 0; i < y_test.rows(); i++) {
             diff(i, 0) = test_preds(i, 0) - y_test(i, 0);
         }
+        outfile << "diff: " << param.rows() << "x" << param.cols() << endl;
         
         // Calculate sum of squared differences
         ex sum_squared = 0;
@@ -125,11 +172,29 @@ int main() {
         // End timing for preds_diff computation
         auto end_compute = high_resolution_clock::now();
         auto duration_compute = duration_cast<milliseconds>(end_compute - start_compute);
+
+        outfile << "sum_squared: " << sum_squared << endl;
+        outfile << "Number of nodes in sum_squared: " << count_nodes(sum_squared) << endl;
+        outfile << "Depth of sum_squared: " << get_depth(sum_squared) << endl;
+        set<void*> visited;
+        size_t memory = 0;
+        memory_footprint(sum_squared, visited, memory);
+        outfile << "Approximate memory (bytes): " << memory << endl;
+        outfile << endl;
+
+        outfile << "preds_diff: " << preds_diff << endl;
+        outfile << "Number of nodes in preds_diff: " << count_nodes(preds_diff) << endl;
+        outfile << "Depth of preds_diff: " << get_depth(preds_diff) << endl;
+        set<void*> visited_1;
+        size_t memory_1 = 0;
+        memory_footprint(preds_diff, visited_1, memory_1);
+        outfile << "Approximate memory (bytes): " << memory_1 << endl;
+        outfile << endl;
         
         // Start timing for linearization
         auto start_linearize = high_resolution_clock::now();
         // Expand the result
-        ex linearized_result = preds_diff.expand();
+        ex linearized_result = preds_diff.expand().normal();
         // End timing for linearization
         auto end_linearize = high_resolution_clock::now();
         auto duration_linearize = duration_cast<milliseconds>(end_linearize - start_linearize);
@@ -138,6 +203,12 @@ int main() {
         outfile << "Expanded Result: " << linearized_result << endl;
         outfile << "Time to compute preds_diff: " << duration_compute.count() << " ms" << endl;
         outfile << "Time to expand result: " << duration_linearize.count() << " ms" << endl;
+        outfile << "Number of nodes in linearized_result: " << count_nodes(linearized_result) << endl;
+        outfile << "Depth of preds_diff: " << get_depth(linearized_result) << endl;
+        set<void*> visited_2;
+        size_t memory_2 = 0;
+        memory_footprint(linearized_result, visited_2, memory_2);
+        outfile << "Approximate memory (bytes): " << memory_2 << endl;
 
         ofstream result_file("ginac_result.txt");
         if (result_file.is_open()) {

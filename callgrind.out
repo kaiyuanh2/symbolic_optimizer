@@ -1,0 +1,794 @@
+events: Hits
+
+fl=(1) ./csu/../csu/libc-start.c
+fn=(1) __libc_start_main_impl
+cfl=(2) ./csu/../sysdeps/nptl/libc_start_call_main.h
+cfn=(2) __libc_start_call_main
+calls=17 58
+392 17
+
+fl=(2)
+fn=(2)
+cfl=??
+cfn=(3) Py_BytesMain
+calls=17 0
+58 17
+
+fl=(3) ./malloc/malloc.c
+fn=(4) __GI___libc_malloc
+3311 1
+
+fl=(3)
+fn=(4)
+cfl=(3)
+cfn=(5) _int_malloc
+calls=1 4382
+3329 1
+
+fl=(3)
+fn=(4)
+3340 2
+
+fl=(3)
+fn=(6) __GI___libc_free
+cfl=(3)
+cfn=(7) _int_free
+calls=1 4702
+3391 1
+
+fl=(3)
+fn=(6)
+cfl=(3)
+cfn=(7)
+calls=1 4674
+3391 1
+
+fl=(3)
+fn=(5)
+4382 1
+
+fl=(3)
+fn=(7)
+cfl=(3)
+cfn=(8) malloc_consolidate
+calls=1 4754
+4674 1
+
+fl=(3)
+fn=(7)
+4702 1
+
+fl=(3)
+fn=(8)
+4754 1
+
+fl=(4) ./nptl/futex-internal.c
+fn=(9) __futex_abstimed_wait_common64
+57 1
+
+fl=(5) ./nptl/pthread_cond_wait.c
+fn=(10) __pthread_cond_wait_common
+cfl=(4)
+cfn=(9)
+calls=1 57
+503 1
+
+fl=(6) ./nptl/pthread_create.c
+fn=(11) start_thread
+cfl=??
+cfn=(12) _PyObject_RealIsInstance
+calls=1 0
+442 1
+
+fl=??
+fn=(13) GiNaC::power::expand_add_2
+cfl=??
+cfn=(14) GiNaC::add::add
+calls=3 0
+0 3
+
+fl=??
+fn=(15) PyObject_CallMethod
+cfl=??
+cfn=(16) PyObject_GenericGetAttr
+calls=17 0
+0 17
+
+fl=??
+fn=(14)
+cfl=??
+cfn=(17) GiNaC::expairseq::construct_from_epvector
+calls=6 0
+0 6
+
+fl=??
+fn=(18) _PyObject_MakeTpCall
+cfl=??
+cfn=(19) PyObject_CallFunctionObjArgs
+calls=17 0
+0 17
+
+fl=??
+fn=(20) _PyLong_Format
+cfl=??
+cfn=(18)
+calls=17 0
+0 17
+
+fl=??
+fn=(21) cln::expt_pos
+0 1
+
+fl=??
+fn=(22) PyInit__asyncio
+cfl=??
+cfn=(23) PyObject_SelfIter
+calls=17 0
+0 17
+
+fl=??
+fn=(24) combine_like_terms_advanced_optimized
+cfl=??
+cfn=(25) GiNaC::operator<<
+calls=1 0
+0 1
+
+fl=??
+fn=(26) _PyEval_EvalFrameDefault
+cfl=??
+cfn=(23)
+calls=119 0
+0 119
+
+fl=??
+fn=(27) expr_to_key
+cfl=??
+cfn=(28) std::__cxx11::basic_ostringstream::basic_ostringstream
+calls=1 0
+0 1
+
+fl=??
+fn=(29) GiNaC::ex::construct_from_basic
+cfl=??
+cfn=(30) GiNaC::mul::eval
+calls=3 0
+0 3
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(31) PyObject_Call
+calls=17 0
+0 17
+
+fl=??
+fn=(32) abstract_loss
+cfl=??
+cfn=(24)
+calls=17 0
+0 17
+
+fl=??
+fn=(33) PyMethod_New
+cfl=??
+cfn=(26)
+calls=53 0
+0 53
+
+fl=??
+fn=(34) GiNaC::expairseq::expandchildren
+cfl=??
+cfn=(35) GiNaC::expairseq::compare_same_type
+calls=1 0
+0 1
+
+fl=??
+fn=(36) operator
+0 1
+
+fl=??
+fn=(37) GiNaC::numeric::do_print
+cfl=??
+cfn=(38) GiNaC::numeric::print_numeric
+calls=1 0
+0 1
+
+fl=??
+fn=(39) cln::print_float
+cfl=??
+cfn=(40) cln::expt
+calls=1 0
+0 1
+
+fl=??
+fn=(14)
+cfl=??
+cfn=(41) GiNaC::expairseq::combine_same_terms_sorted_seq
+calls=3 0
+0 3
+
+fl=??
+fn=(23)
+cfl=??
+cfn=(26)
+calls=153 0
+0 153
+
+fl=??
+fn=(34)
+cfl=??
+cfn=(42) GiNaC::basic::compare
+calls=4 0
+0 4
+
+fl=??
+fn=(36)
+0 2
+
+fl=??
+fn=(43) GiNaC::power::expand
+cfl=??
+cfn=(44) GiNaC::power::expand_add
+calls=7 0
+0 7
+
+fl=??
+fn=(45) combine_like_terms_robust
+cfl=??
+cfn=(27)
+calls=1 0
+0 1
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(46) _PyFunction_Vectorcall
+calls=142 0
+0 142
+
+fl=??
+fn=(39)
+cfl=??
+cfn=(39)
+calls=1 0
+0 1
+
+fl=??
+fn=(47) find_all_symbols
+cfl=??
+cfn=(48) GiNaC::ex::traverse_preorder
+calls=1 0
+0 1
+
+fl=??
+fn=(49) cln::operator*
+cfl=??
+cfn=(50) cln::cl_free_heap_object
+calls=1 0
+0 1
+
+fl=??
+fn=(42)
+0 3
+
+fl=??
+fn=(51) PyUnicodeDecodeError_SetStart
+cfl=??
+cfn=(15)
+calls=17 0
+0 17
+
+fl=??
+fn=(19)
+cfl=??
+cfn=(52) pybind11::cpp_function::dispatcher
+calls=17 0
+0 17
+
+fl=??
+fn=(40)
+cfl=??
+cfn=(21)
+calls=1 0
+0 1
+
+fl=??
+fn=(28)
+cfl=??
+cfn=(53) std::ios_base::ios_base@@GLIBCXX_3.4
+calls=1 0
+0 1
+
+fl=??
+fn=(46)
+cfl=??
+cfn=(26)
+calls=159 0
+0 159
+
+fl=??
+fn=(34)
+cfl=??
+cfn=(54) GiNaC::ex::expand
+calls=7 0
+0 7
+
+fl=??
+fn=(52)
+cfl=??
+cfn=(55) pybind11::cpp_function::initialize::{lambda#3}::_FUN
+calls=17 0
+0 17
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(33)
+calls=35 0
+0 35
+
+fl=??
+fn=(56) Py_RunMain
+cfl=??
+cfn=(57) PyRun_StringFlags
+calls=17 0
+0 17
+
+fl=??
+fn=(58) GiNaC::expairseq::calchash
+0 1
+
+fl=??
+fn=(59) GiNaC::mul::expand
+cfl=??
+cfn=(29)
+calls=3 0
+0 3
+
+fl=??
+fn=(60) _PyDict_NewPresized
+cfl=??
+cfn=(51)
+calls=17 0
+0 17
+
+fl=??
+fn=(48)
+cfl=??
+cfn=(48)
+calls=1 0
+0 1
+
+fl=??
+fn=(54)
+cfl=??
+cfn=(43)
+calls=7 0
+0 7
+
+fl=??
+fn=(61) cln::operator+
+cfl=??
+cfn=(61)
+calls=2 0
+0 2
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(60)
+calls=17 0
+0 17
+
+fl=??
+fn=(29)
+cfl=??
+cfn=(62) GiNaC::expairseq::canonicalize
+calls=3 0
+0 3
+
+fl=??
+fn=(63) GiNaC::numeric::add_dyn
+cfl=??
+cfn=(61)
+calls=2 0
+0 2
+
+fl=??
+fn=(44)
+cfl=??
+cfn=(13)
+calls=7 0
+0 7
+
+fl=??
+fn=(41)
+cfl=??
+cfn=(64) GiNaC::add::compare_same_type
+calls=1 0
+0 1
+
+fl=??
+fn=(48)
+0 1
+
+fl=??
+fn=(57)
+cfl=??
+cfn=(46)
+calls=17 0
+0 17
+
+fl=??
+fn=(42)
+cfl=??
+cfn=(58)
+calls=1 0
+0 1
+
+fl=??
+fn=(34)
+cfl=??
+cfn=(34)
+calls=22 0
+0 22
+
+fl=??
+fn=(65) GiNaC::expairseq::make_flat
+0 1
+
+fl=??
+fn=(38)
+cfl=??
+cfn=(66) GiNaC::sqrfree_parfrac
+calls=1 0
+0 1
+
+fl=??
+fn=(62)
+cfl=??
+cfn=(34)
+calls=5 0
+0 5
+
+fl=??
+fn=(67) PyContext_CopyCurrent
+cfl=??
+cfn=(68) PyEval_RestoreThread
+calls=1 0
+0 1
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(69) PyObject_IsTrue
+calls=17 0
+0 17
+
+fl=??
+fn=(20)
+cfl=??
+cfn=(70) _Py_VaBuildStack
+calls=17 0
+0 17
+
+fl=??
+fn=(71) _PyDict_SetItem_KnownHash
+cfl=??
+cfn=(33)
+calls=1 0
+0 1
+
+fl=??
+fn=(72) GiNaC::add::print_add
+cfl=??
+cfn=(37)
+calls=1 0
+0 1
+
+fl=??
+fn=(30)
+cfl=??
+cfn=(29)
+calls=3 0
+0 3
+
+fl=??
+fn=(66)
+cfl=??
+cfn=(39)
+calls=1 0
+0 1
+
+fl=??
+fn=(70)
+cfl=??
+cfn=(73) PyCell_New
+calls=17 0
+0 17
+
+fl=??
+fn=(74) GiNaC::add::expand
+cfl=??
+cfn=(64)
+calls=1 0
+0 1
+
+fl=??
+fn=(31)
+cfl=??
+cfn=(33)
+calls=17 0
+0 17
+
+fl=??
+fn=(13)
+cfl=??
+cfn=(59)
+calls=3 0
+0 3
+
+fl=??
+fn=(24)
+cfl=??
+cfn=(45)
+calls=1 0
+0 1
+
+fl=??
+fn=(17)
+cfl=??
+cfn=(62)
+calls=5 0
+0 5
+
+fl=??
+fn=(72)
+cfl=??
+cfn=(75) GiNaC::power::print_power
+calls=1 0
+0 1
+
+fl=??
+fn=(25)
+cfl=??
+cfn=(72)
+calls=1 0
+0 1
+
+fl=??
+fn=(76) GiNaC::numeric::mul_dyn
+cfl=??
+cfn=(49)
+calls=1 0
+0 1
+
+fl=??
+fn=(77) PyThread_tss_set
+cfl=(5)
+cfn=(10)
+calls=1 503
+0 1
+
+fl=??
+fn=(24)
+cfl=??
+cfn=(54)
+calls=14 0
+0 14
+
+fl=??
+fn=(21)
+cfl=??
+cfn=(21)
+calls=1 0
+0 1
+
+fl=??
+fn=(50)
+cfl=(3)
+cfn=(4)
+calls=1 3311
+0 1
+
+fl=??
+fn=(78) _PyUnicode_IsWhitespace
+cfl=??
+cfn=(23)
+calls=17 0
+0 17
+
+fl=??
+fn=(53)
+0 1
+
+fl=??
+fn=(16)
+cfl=??
+cfn=(22)
+calls=17 0
+0 17
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(20)
+calls=34 0
+0 34
+
+fl=??
+fn=(79) PyFrozenSet_New
+cfl=??
+cfn=(80) PyEval_EvalCode
+calls=34 0
+0 34
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(81) PyNumber_Add
+calls=1 0
+0 1
+
+fl=??
+fn=(74)
+cfl=??
+cfn=(34)
+calls=7 0
+0 7
+
+fl=??
+fn=(13)
+cfl=??
+cfn=(76)
+calls=1 0
+0 1
+
+fl=??
+fn=(26)
+cfl=??
+cfn=(73)
+calls=17 0
+0 17
+
+fl=??
+fn=(64)
+cfl=(3)
+cfn=(6)
+calls=2 3391
+0 2
+
+fl=??
+fn=(69)
+cfl=??
+cfn=(78)
+calls=17 0
+0 17
+
+fl=??
+fn=(49)
+cfl=??
+cfn=(49)
+calls=2 0
+0 2
+
+fl=??
+fn=(35)
+0 1
+
+fl=??
+fn=(73)
+cfl=??
+cfn=(79)
+calls=34 0
+0 34
+
+fl=??
+fn=(22)
+cfl=??
+cfn=(22)
+calls=17 0
+0 17
+
+fl=??
+fn=(61)
+0 2
+
+fl=??
+fn=(17)
+cfl=??
+cfn=(65)
+calls=1 0
+0 1
+
+fl=??
+fn=(41)
+cfl=??
+cfn=(63)
+calls=2 0
+0 2
+
+fl=??
+fn=(3)
+cfl=??
+cfn=(56)
+calls=17 0
+0 17
+
+fl=??
+fn=(81)
+cfl=??
+cfn=(67)
+calls=1 0
+0 1
+
+fl=??
+fn=(62)
+cfl=??
+cfn=(82) operator new@@GLIBCXX_3.4
+calls=3 0
+0 3
+
+fl=??
+fn=(80)
+cfl=??
+cfn=(26)
+calls=34 0
+0 34
+
+fl=??
+fn=(54)
+cfl=??
+cfn=(74)
+calls=14 0
+0 14
+
+fl=??
+fn=(80)
+cfl=??
+cfn=(80)
+calls=34 0
+0 34
+
+fl=??
+fn=(75)
+cfl=??
+cfn=(72)
+calls=1 0
+0 1
+
+fl=??
+fn=(24)
+cfl=??
+cfn=(47)
+calls=1 0
+0 1
+
+fl=??
+fn=(74)
+cfl=??
+cfn=(14)
+calls=6 0
+0 6
+
+fl=??
+fn=(12)
+cfl=??
+cfn=(71)
+calls=1 0
+0 1
+
+fl=??
+fn=(68)
+cfl=??
+cfn=(77)
+calls=1 0
+0 1
+
+fl=??
+fn=(55)
+cfl=??
+cfn=(32)
+calls=17 0
+0 17
+
