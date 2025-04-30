@@ -1,0 +1,10 @@
+{
+    "dataset": "Mines_injector_lr",
+    "mv_type": "real",
+    "train/val/test": "202/68/68",
+    "num_feature": 3,
+    "percent_mv_cells": 0.039603960396039604,
+    "percent_mv_rows": 0.1188118811881188,
+    "mv_columns": "S(num), ",
+    "seed": 1
+}

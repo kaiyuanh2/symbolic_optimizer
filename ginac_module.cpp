@@ -12,6 +12,8 @@
 #include <cmath>
 #include <regex>
 #include <climits>
+#include <map>
+#include <set>
 
 #include <thread>
 #include <future>
@@ -20,6 +22,11 @@
 #include <queue>
 #include <functional>
 #include <memory>
+#include <stdexcept>
+#include <atomic>
+#include <execution>
+#include <cstddef>
+#include <numeric>
 
 namespace py = pybind11;
 using namespace std;
@@ -260,32 +267,6 @@ ex combine_like_terms_robust(const ex& e, const map<string, int>& symbol_priorit
     return result;
 }
 
-// Enhanced combine function that uses multiple approaches
-ex combine_like_terms_advanced(const ex& e) {
-    // First find all symbols in the expression
-    lst symbols = find_all_symbols(e);
-    
-    // Generate a symbol priority map
-    map<string, int> symbol_priority = generate_symbol_priority_map(symbols);
-    
-    // First try the robust combine
-    ex result = combine_like_terms_robust(e, symbol_priority);
-    
-    // Try normal() to help with simplification
-    result = result.normal();
-    
-    // Now collect with respect to each symbol
-    for (size_t i = 0; i < symbols.nops(); ++i) {
-        result = result.collect(symbols.op(i));
-    }
-    
-    // Try expanding again to catch any remaining combinable terms
-    result = result.expand();
-    
-    // And finally combine like terms again
-    return combine_like_terms_robust(result, symbol_priority);
-}
-
 // Function to extract all symbol names from an expression string
 vector<string> extract_symbol_names(const string& expr_str) {
     vector<string> symbol_names;
@@ -377,81 +358,33 @@ class ExpressionCache {
 // Global cache instance
 ExpressionCache expr_cache;
 
-// Optimized version of combine_like_terms_advanced
 ex combine_like_terms_advanced_optimized(const ex& e) {
     // Check if we've already processed this expression
     if (expr_cache.has(e)) {
         return expr_cache.get(e);
     }
 
-    // First, expand the expression (if it's not already expanded)
-    ex expanded = e.expand();
-    
-    // Return early if the expression is trivial
-    if (!is_a<add>(expanded) && !is_a<mul>(expanded)) {
-        return expanded;
-    }
-
     // Find all symbols only once
-    lst symbols = find_all_symbols(expanded);
+    auto start_time = high_resolution_clock::now();
+    lst symbols = find_all_symbols(e);
+    auto end_time = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end_time - start_time).count();
+    cout << "Symbol extraction time: " << duration << " ms" << endl;
     
     // Generate symbol priority map
+    start_time = high_resolution_clock::now();
     map<string, int> symbol_priority = generate_symbol_priority_map(symbols);
+    end_time = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(end_time - start_time).count();
+    cout << "Symbol priority generation time: " << duration << " ms" << endl;
     
-    // Main processing: combine like terms 
-    ex result = combine_like_terms_robust(expanded, symbol_priority);
+    // Main processing: combine like terms
+    start_time = high_resolution_clock::now();
+    ex result = combine_like_terms_robust(e, symbol_priority);
+    end_time = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(end_time - start_time).count();
+    cout << "combine_like_terms_robust() time: " << duration << " ms" << endl;
     
-    // For very complex expressions, avoid expensive operations like normal()
-    bool is_complex = (expanded.nops() > 1000); // Threshold for "complex" expressions
-    
-    if (!is_complex) {
-        // Apply normal() for simpler expressions
-        result = result.normal();
-        
-        // Collect with respect to the most frequently occurring symbols first
-        // Count symbol occurrences
-        map<ex, int> symbol_count;
-        for (size_t i = 0; i < symbols.nops(); ++i) {
-            symbol_count[symbols.op(i)] = 0;
-        }
-        
-        // Count occurrences in expanded expression
-        if (is_a<add>(expanded)) {
-            for (size_t i = 0; i < expanded.nops(); ++i) {
-                ex term = expanded.op(i);
-                for (size_t j = 0; j < symbols.nops(); ++j) {
-                    if (term.has(symbols.op(j))) {
-                        symbol_count[symbols.op(j)]++;
-                    }
-                }
-            }
-        }
-        
-        // Sort symbols by frequency (most frequent first)
-        vector<pair<ex, int>> sorted_symbols;
-        for (const auto& pair : symbol_count) {
-            sorted_symbols.push_back(pair);
-        }
-        
-        sort(sorted_symbols.begin(), sorted_symbols.end(), 
-            [](const pair<ex, int>& a, const pair<ex, int>& b) {
-                return a.second > b.second;
-            });
-        
-        // Collect with respect to the most frequent symbols first (limited to top N)
-        const int MAX_COLLECT_SYMBOLS = 10; // Limit collection to top N most frequent symbols
-        for (size_t i = 0; i < min(static_cast<size_t>(MAX_COLLECT_SYMBOLS), sorted_symbols.size()); ++i) {
-            result = result.collect(sorted_symbols[i].first);
-        }
-        
-        // One final expansion to ensure we catch any terms that can be further combined
-        result = result.expand();
-        
-        // Final combination of like terms
-        result = combine_like_terms_robust(result, symbol_priority);
-    }
-    
-    // Store in cache for future use
     expr_cache.store(e, result);
     
     return result;
@@ -789,248 +722,89 @@ ex fast_combine_like_terms(const ex& e) {
     return result;
 }
 
-// Process large expressions in chunks directly
-ex parallel_combine_like_terms(const ex& e) {
-    if (!is_a<add>(e)) return fast_combine_like_terms(e);
-    
-    // For very large sums, process in chunks using multiple threads
-    const size_t MAX_TERMS_PER_THREAD = 10000;
-    size_t nops = e.nops();
-    
-    if (nops <= MAX_TERMS_PER_THREAD) {
-        return fast_combine_like_terms(e);
-    }
-    
-    cout << "Processing large expression with " << nops << " terms using parallel approach..." << endl;
-    
-    // Determine how many chunks to split into
-    size_t num_threads = std::thread::hardware_concurrency();
-    if (num_threads == 0) num_threads = 4; // Default if detection fails
-    
-    size_t terms_per_thread = (nops + num_threads - 1) / num_threads;
-    // Make sure each thread gets enough work but not too much
-    terms_per_thread = min(terms_per_thread, MAX_TERMS_PER_THREAD);
-    
-    size_t num_chunks = (nops + terms_per_thread - 1) / terms_per_thread;
-    vector<future<ex>> futures;
-    vector<ex> chunk_expressions(num_chunks);
-    
-    // Create the chunks
-    for (size_t i = 0; i < num_chunks; ++i) {
-        size_t start_idx = i * terms_per_thread;
-        size_t end_idx = min(start_idx + terms_per_thread, nops);
-        
-        // Build expression for this chunk
-        ex chunk_expr = 0;
-        for (size_t j = start_idx; j < end_idx; ++j) {
-            chunk_expr = chunk_expr + e.op(j);
-        }
-        chunk_expressions[i] = chunk_expr;
-    }
-    
-    // Process each chunk (potentially in parallel)
-    vector<ex> results(num_chunks);
-    
-    // We could launch threads here, but for simplicity, I'm keeping them sequential
-    // You can enhance this with actual thread pool if needed
-    for (size_t i = 0; i < num_chunks; ++i) {
-        cout << "Processing chunk " << (i + 1) << " of " << num_chunks << "..." << endl;
-        results[i] = fast_combine_like_terms(chunk_expressions[i]);
-    }
-    
-    // Combine results from all chunks
-    ex final_result = 0;
-    for (const auto& result : results) {
-        final_result = final_result + result;
-    }
-    
-    // One final combine to merge terms from different chunks
-    return fast_combine_like_terms(final_result);
-}
-
-// Thread pool for parallel expression processing
-class ExpressionThreadPool {
-    private:
-        std::vector<std::thread> workers;
-        std::queue<std::function<void()>> tasks;
-        std::mutex queue_mutex;
-        std::condition_variable condition;
-        bool stop;
-        
+class ThreadPool {
     public:
-        ExpressionThreadPool(size_t threads) : stop(false) {
-            for (size_t i = 0; i < threads; ++i) {
+        ThreadPool(size_t threads) : stop(false) {
+            if (threads == 0) threads = 1; // Ensure at least one thread
+            for(size_t i = 0; i < threads; ++i)
                 workers.emplace_back([this] {
-                    while (true) {
+                    while(true) {
                         std::function<void()> task;
-                        
                         {
-                            std::unique_lock<std::mutex> lock(queue_mutex);
-                            condition.wait(lock, [this] { 
-                                return stop || !tasks.empty(); 
-                            });
-                            
-                            if (stop && tasks.empty()) {
-                                return;
-                            }
-                            
-                            task = std::move(tasks.front());
-                            tasks.pop();
+                            std::unique_lock<std::mutex> lock(this->queue_mutex);
+                            this->condition.wait(lock, [this]{ return this->stop || !this->tasks.empty(); });
+                            if(this->stop && this->tasks.empty()) return;
+                            task = std::move(this->tasks.front());
+                            this->tasks.pop();
                         }
-                        
-                        task();
+                        try {
+                            task(); // Execute the task
+                        } catch (const std::exception& e) {
+                            std::cerr << "!!! Exception caught in thread pool worker: " << e.what() << std::endl;
+                        } catch (...) {
+                            std::cerr << "!!! Unknown exception caught in thread pool worker." << std::endl;
+                        }
                     }
                 });
-            }
         }
-        
+    
         template<class F, class... Args>
-        auto enqueue(F&& f, Args&&... args) 
-            -> std::future<typename std::result_of<F(Args...)>::type> {
-            
-            using return_type = typename std::result_of<F(Args...)>::type;
-            
-            auto task = std::make_shared<std::packaged_task<return_type()>>(
+        auto enqueue(F&& f, Args&&... args)
+            // -> std::future<typename std::invoke_result<F, Args...>::type> { // C++17 version (REMOVE/COMMENT OUT)
+            -> std::future<typename std::result_of<F(Args...)>::type> {          // C++11/14 version (USE THIS)
+
+            // using return_type = typename std::invoke_result<F, Args...>::type; // C++17 version (REMOVE/COMMENT OUT)
+            using return_type = typename std::result_of<F(Args...)>::type;          // C++11/14 version (USE THIS)
+
+            auto task = std::make_shared< std::packaged_task<return_type()> >(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...)
             );
-            
+
             std::future<return_type> res = task->get_future();
-            
             {
                 std::unique_lock<std::mutex> lock(queue_mutex);
-                if (stop) {
-                    throw std::runtime_error("enqueue on stopped ThreadPool");
-                }
-                
-                tasks.emplace([task]() { (*task)(); });
+                if(stop) throw std::runtime_error("enqueue on stopped ThreadPool");
+                tasks.emplace([task](){ (*task)(); });
             }
-            
             condition.notify_one();
             return res;
         }
-        
-        ~ExpressionThreadPool() {
+    
+        ~ThreadPool() {
             {
                 std::unique_lock<std::mutex> lock(queue_mutex);
                 stop = true;
             }
-            
             condition.notify_all();
-            
-            for (std::thread &worker : workers) {
+            for(std::thread &worker: workers)
                 worker.join();
-            }
         }
+    
+    private:
+        std::vector< std::thread > workers;
+        std::queue< std::function<void()> > tasks;
+        std::mutex queue_mutex;
+        std::condition_variable condition;
+        bool stop;
 };
-    
-// Improved parallel version using the thread pool
-ex parallel_combine_like_terms_improved(const ex& e) {
-    if (!is_a<add>(e)) return fast_combine_like_terms(e);
-    
-    // For very large sums, process in chunks using thread pool
-    const size_t MAX_TERMS_PER_THREAD = 10000;
-    size_t nops = e.nops();
-    
-    if (nops <= MAX_TERMS_PER_THREAD) {
-        return fast_combine_like_terms(e);
+
+ex square_and_expand(const matrix& input_matrix) {
+    size_t num_rows = input_matrix.rows();
+    size_t num_columns = input_matrix.cols();
+
+    if (num_rows * num_columns == 0) {
+        return numeric(0); // Return symbolic zero for empty matrix
     }
-    
-    cout << "Processing large expression with " << nops << " terms using thread pool..." << endl;
-    
-    // Determine number of threads to use
-    size_t num_threads = std::thread::hardware_concurrency();
-    if (num_threads == 0) num_threads = 4; // Default if detection fails
-    num_threads = std::min(num_threads, static_cast<size_t>(16)); // Cap at 16 threads
-    
-    size_t terms_per_thread = (nops + num_threads - 1) / num_threads;
-    // Make sure each thread gets enough work but not too much
-    terms_per_thread = std::min(terms_per_thread, MAX_TERMS_PER_THREAD);
-    
-    size_t num_chunks = (nops + terms_per_thread - 1) / terms_per_thread;
-    
-    // Create thread pool
-    ExpressionThreadPool pool(num_threads);
-    std::vector<std::future<ex>> futures;
-    
-    // Create and submit tasks
-    for (size_t i = 0; i < num_chunks; ++i) {
-        size_t start_idx = i * terms_per_thread;
-        size_t end_idx = std::min(start_idx + terms_per_thread, nops);
-        
-        // Create the chunk expression
-        ex chunk_expr = 0;
-        for (size_t j = start_idx; j < end_idx; ++j) {
-            chunk_expr = chunk_expr + e.op(j);
-        }
-        
-        // Submit to thread pool
-        futures.push_back(pool.enqueue([chunk_expr]() {
-            cout << "Processing chunk in thread " << std::this_thread::get_id() << "..." << endl;
-            return fast_combine_like_terms(chunk_expr);
-        }));
+
+    ex final_result = numeric(0);
+    for (size_t k = 0; k < num_rows; ++k) {
+        final_result += (input_matrix(k, 0) * input_matrix(k, 0)).expand();
     }
-    
-    // Collect results
-    ex final_result = 0;
-    for (auto& future : futures) {
-        final_result = final_result + future.get();
-    }
-    
-    // Final combination
-    cout << "Combining results from all threads..." << endl;
-    return fast_combine_like_terms(final_result);
-}
-    
-// More efficient approach for GiNaC expressions
-ex efficient_process_large_expression(const ex& e) {
-    // Key changes for really large expressions:
-    
-    // 1. Break down the expression into smaller chunks first
-    if (is_a<add>(e) && e.nops() > 50000) {
-        return parallel_combine_like_terms_improved(e);
-    }
-    
-    // 2. For medium-large expressions
-    if (is_a<add>(e) && e.nops() > 1000) {
-        // Use our faster hash-based combine
-        return fast_combine_like_terms(e);
-    }
-    
-    // 3. For smaller expressions, use normal GiNaC operations
-    return combine_like_terms_advanced_optimized(e);
+
+    return final_result;
 }
 
-// Specialized expand function for squared sums
-ex optimized_expand(const ex & e) {
-    // For sum of squares, expand each squared term separately
-    if (is_a<add>(e)) {
-        bool all_squares = true;
-        for (size_t i=0; i<e.nops(); i++) {
-            if (!is_a<power>(e.op(i)) || e.op(i).op(1) != numeric(2)) {
-                all_squares = false;
-                break;
-            }
-        }
-        
-        if (all_squares) {
-            // Handle sum of squares
-            exvector expanded_terms;
-            expanded_terms.reserve(e.nops());
-            for (size_t i=0; i<e.nops(); i++) {
-                // For each squared term, expand the base first
-                ex base = e.op(i).op(0);
-                ex expanded_base = base.expand();
-                // Then square it - this is often more efficient
-                expanded_terms.push_back(pow(expanded_base, 2));
-            }
-            return add(expanded_terms);
-        }
-    }
-    
-    // Default case: use GiNaC's expand
-    return e.expand();
-}
-
+// Utilities
 // Function to multiply X_test and param and return simplified results
 py::list multiply_matrices(const py::list& X_test_py, const py::list& param_py) {
     // Convert Python lists to GiNaC matrices
@@ -1066,7 +840,7 @@ py::list multiply_matrices(const py::list& X_test_py, const py::list& param_py) 
         }
         
         // Apply GiNaC simplifications
-        sum = sum.expand().normal();
+        sum = sum.expand();
         
         result(i, 0) = sum;
     }
@@ -1150,87 +924,29 @@ py::list abstract_loss(const py::list& X_test_py, const py::list& y_test_py, con
 
     start_time = high_resolution_clock::now();
     // Calculate sum of squared differences
-    ex sum_squared = 0;
-    ex temp_result = 0;
-    for (int i = 0; i < diff.rows(); i++) {
-        sum_squared += diff(i, 0) * diff(i, 0);
-    }
+    ex sum_squared = square_and_expand(diff);
+    // ex temp_result = 0;
+    // for (int i = 0; i < diff.rows(); i++) {
+    //     sum_squared += (diff(i, 0) * diff(i, 0)).expand();
+    // }
     end_time = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(end_time - start_time);
-    cout << "Time for square: " << duration.count() << " ms" << endl;
+    cout << "Time for square and expand: " << duration.count() << " ms" << endl;
 
-    start_time = high_resolution_clock::now();
-    sum_squared = optimized_expand(sum_squared);
-    end_time = high_resolution_clock::now();
-    duration = duration_cast<milliseconds>(end_time - start_time);
-    cout << "Time for expansion: " << duration.count() << " ms" << endl;
+    // start_time = high_resolution_clock::now();
+    // expansion
+    // sum_squared = sum_squared.expand();
+    // end_time = high_resolution_clock::now();
+    // duration = duration_cast<milliseconds>(end_time - start_time);
+    // cout << "Time for expansion: " << duration.count() << " ms" << endl;
 
     cout << "Number of nodes in sum_squared: " << count_nodes(sum_squared) << endl;
     cout << "Number of terms in sum_squared: " << sum_squared.nops() << endl;
     cout << "Depth of sum_squared: " << get_depth(sum_squared) << endl;
     print_memory_usage();
 
-    // Analyze expression complexity before processing
-    bool is_very_large = false;
-    bool is_complex_structure = false;
-    
-    // Check size
-    if (is_a<add>(sum_squared)) {
-        size_t num_terms = sum_squared.nops();
-        cout << "Expression has " << num_terms << " terms at top level" << endl;
-        
-        if (num_terms > 100000) {
-            is_very_large = true;
-            cout << "Detected very large expression, using specialized processing" << endl;
-        } else if (num_terms > 10000) {
-            cout << "Detected large expression, using optimized processing" << endl;
-        }
-        
-        // Sample a few terms to check structure complexity
-        size_t sample_size = min(num_terms, static_cast<size_t>(100));
-        size_t complex_terms = 0;
-        
-        for (size_t i = 0; i < sample_size; ++i) {
-            size_t idx = i * (num_terms / sample_size);
-            if (idx >= num_terms) continue;
-            
-            ex term = sum_squared.op(idx);
-            if (term.nops() > 10 || is_a<power>(term) || is_a<GiNaC::function>(term)) {
-                complex_terms++;
-            }
-        }
-        
-        double complex_percent = (100.0 * complex_terms) / sample_size;
-        cout << "Approximately " << complex_percent << "% of terms have complex structure" << endl;
-        
-        if (complex_percent > 30.0) {
-            is_complex_structure = true;
-            cout << "Detected complex term structure, adjusting algorithm" << endl;
-        }
-    }
-
     start_time = high_resolution_clock::now();
-    if (is_very_large && is_complex_structure) {
-        // For the most complex expressions, use parallel processing with custom term handling
-        cout << "Using parallel processing with custom term handling..." << endl;
-        sum_squared = parallel_combine_like_terms_improved(sum_squared);
-    } 
-    else if (is_very_large) {
-        // For very large but simpler expressions
-        cout << "Using parallel processing with hash-based term handling..." << endl;
-        sum_squared = parallel_combine_like_terms(sum_squared);
-    } 
-    else if (is_complex_structure) {
-        // For complex but smaller expressions
-        cout << "Using optimized GiNaC operations for complex structure..." << endl;
-        sum_squared = combine_like_terms_advanced_optimized(sum_squared);
-    } 
-    else {
-        // For simpler expressions, use fast combine
-        cout << "Using hash-based term handling..." << endl;
-        sum_squared = fast_combine_like_terms(sum_squared);
-    }
-    // sum_squared = combine_like_terms_advanced_large(sum_squared);
+    sum_squared = combine_like_terms_advanced_optimized(sum_squared);
     end_time = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(end_time - start_time);
     cout << "Time for combining like terms: " << duration.count() << " ms" << endl;
@@ -1240,22 +956,110 @@ py::list abstract_loss(const py::list& X_test_py, const py::list& y_test_py, con
     cout << "Depth of sum_squared after expansion: " << get_depth(sum_squared) << endl;
     print_memory_usage();
 
-    ex preds_diff = sum_squared / numeric(X_rows);
-    ex result = preds_diff;
+    sum_squared = sum_squared / numeric(X_rows);
     
     // Convert result back to Python list
     py::list result_py;
     for (int i = 0; i < 1; i++) {
         ostringstream oss;
-        oss << result;
+        oss << sum_squared;
         result_py.append(oss.str());
     }
     
     return result_py;
 }
 
+py::str expand_single(const py::str& expression) {
+    // Parse the expression from the string
+    parser reader;
+    ex expr = reader(expression);
+    
+    // Expand the expression
+    ex expanded_expr = expr.expand();
+    
+    // Convert back to string and return
+    ostringstream oss;
+    oss << expanded_expr;
+    return py::str(oss.str());
+}
+
+py::str expand_chunk(const py::list& expressions) {
+    // Parse the expression from the list
+    parser reader;
+    int rows = py::len(expressions);
+    ex chunk_sum = numeric(0);
+
+    std::vector<ex> exprs(rows);
+    for (int i = 0; i < rows; i++) {
+        exprs[i] = reader(py::str(expressions[i]));
+    }
+    
+    // Expand the expressions
+    for (const ex& expr : exprs) {
+        try {
+            chunk_sum = chunk_sum + expr.expand();
+
+        } catch (const std::exception& e) {
+            return "__CPP_CHUNK_ERROR__";
+        } catch (...) {
+             return "__CPP_CHUNK_UNKNOWN_ERROR__";
+        }
+    }
+
+    chunk_sum = combine_like_terms_advanced_optimized(chunk_sum);
+
+    std::ostringstream oss;
+    oss << chunk_sum;
+    return py::str(oss.str());
+}
+
+py::list expand_matrix(const py::list& expressions, const py::int_& row, const py::int_& col) {
+    // Parse the expression from the string
+    parser reader;
+    int rows = row.cast<int>();
+    int cols = col.cast<int>();
+
+    std::vector<ex> exprs(rows);
+    for (int i = 0; i < rows; i++) {
+        exprs[i] = reader(py::str(expressions[i]));
+    }
+    
+    // Expand the expressions
+    for (ex& expr : exprs) {
+        expr = expr.expand();
+    }
+    
+    // Convert back to python list and return
+    py::list result_py;
+    for (int i = 0; i < rows * cols; i++) {
+        ostringstream oss;
+        oss << exprs[i];
+        result_py.append(oss.str());
+    }
+
+    return result_py;
+}
+
+py::str combine_like_terms(const py::str& expression) {
+    // Parse the expression from the string
+    parser reader;
+    ex expr = reader(expression);
+    
+    // Expand the expression
+    ex processed_expr = combine_like_terms_advanced_optimized(expr);
+    
+    // Convert back to string and return
+    ostringstream oss;
+    oss << processed_expr;
+    return py::str(oss.str());
+}
+
 PYBIND11_MODULE(ginac_module, m) {
     m.doc() = "GiNaC operations module";
     m.def("multiply_matrices", &multiply_matrices, "Multiply X_test and param");
     m.def("abstract_loss", &abstract_loss, "Full pipeline for abstract loss");
+    m.def("expand_single", &expand_single, "Expand one expression");
+    m.def("expand_chunk", &expand_chunk, "Expand a chunk of expressions");
+    m.def("expand_matrix", &expand_matrix, "Expand a matrix of expressions");
+    m.def("combine_like_terms", &combine_like_terms, "Do combine like terms in one expression");
 }
